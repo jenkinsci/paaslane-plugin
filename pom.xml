@@ -11,10 +11,27 @@
   <version>1.0.0</version>
   <packaging>hpi</packaging>
 
+  <name>Jenkins PaaSLane Estimate plugin</name>
+  <url>http://wiki.jenkins-ci.org/display/JENKINS/PaaSLane+Estimate+Plugin</url>
+
+    <developers>
+        <developer>
+            <id>thatzall</id>
+            <name>Alan Zall</name>
+        </developer>
+    </developers>
+
+
   <properties>
     <jersey.client.version>1.16</jersey.client.version>
   </properties>
 
+  <scm>
+    <connection>scm:git:git://github.com/jenkinsci/paaslane-plugin.git</connection>
+    <developerConnection>scm:git:git@github.com:jenkinsci/paaslane-plugin.git</developerConnection>
+    <url>https://github.com/jenkinsci/paaslane-plugin</url>
+    <tag>HEAD</tag>
+  </scm>
 
   <!-- get every artifact through repo.jenkins-ci.org, which proxies all the artifacts that we need -->
   <repositories>
