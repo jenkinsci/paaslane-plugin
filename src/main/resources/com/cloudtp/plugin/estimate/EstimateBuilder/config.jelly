@@ -1,0 +1,55 @@
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+  <!--
+    This jelly script is used for per-project configuration.
+
+    See global.jelly for a general discussion about jelly script.
+  -->
+
+  <!--
+    Creates a text field that shows the value of the "name" property.
+    When submitted, it will be passed to the corresponding constructor parameter.
+    
+    String name, String token, String archiveFilePath, String regWhichIncludedModules, String ruleSets, String uri
+    
+  -->
+  <f:entry title="Name" field="name">
+    <f:textbox />
+  </f:entry>
+  
+  <f:entry title="Authentication Token" field="token">
+    <f:textbox />
+  </f:entry>
+
+  <f:entry title="Path to Artifact" field="archiveFilePath">
+    <f:textbox />
+  </f:entry>
+
+  <f:entry title="Regular Expression for Selecting Modules" field="regWhichIncludedModules">
+    <f:textbox default="**/*.?ar"/>
+  </f:entry>
+
+  <f:entry title="Exclude Regular Expressions" field="regexExclude">
+    <f:textbox  default="(.*)WEB-INF(.*),(.*)/test-classes/(.*)"/>
+  </f:entry>
+
+  <!--
+  <f:entry title="List of Rule Sets to Estimate" field="ruleSets">
+    <f:textbox />
+  </f:entry>
+  -->
+
+  <f:entry title="PaaSLane URL" field="uri">
+    <f:textbox />
+  </f:entry>
+  
+  <f:entry title="Language" field="language">
+    <select name="language" >
+    	<option value="java">Java</option>
+    	<option value=".net">.NET(C#)</option>
+    </select>
+  </f:entry>
+  
+  <f:entry title="Test, but don't send files" field="testOnly">
+    <f:checkbox />
+  </f:entry>
+</j:jelly>

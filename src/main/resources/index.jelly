@@ -1,0 +1,7 @@
+<!--
+  This view is used to render the installed plugins page.
+-->
+<div>
+  This plugin makes it possible to request an estimate from <a href="http://www.paaslane.com">PaaSLane</a> into your Jenkins build.<br/>
+  
+</div>
