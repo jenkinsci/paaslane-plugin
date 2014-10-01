@@ -7,8 +7,8 @@
   </parent>
 
   <groupId>com.cloudtp.jenkins</groupId>
-  <artifactId>estimate</artifactId>
-  <version>1.0.0</version>
+  <artifactId>paaslane-estimate</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
   <name>Jenkins PaaSLane Estimate plugin</name>
