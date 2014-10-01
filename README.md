@@ -3,7 +3,7 @@
 Plugin responsible for sending one or more compiled java artifacts to PaaSLane for processing through a licensed account.
 
 Parameters include:
-* url - The "PaaSLane URL" field specifies the root url, including the host, port and context that define the location of the PaaSLane profiling environment to use. For most SaaS customers, this will be https://app.paaslane.com/paaslane. However, customers utilizing distributed profiling, will want to get their URL from their administrator.
+* url - The "PaaSLane URL" field specifies the root url, including the host, port and context that define the location of the PaaSLane profiling environment to use. For most SaaS customers, this will be https://app.paaslane.com/paaslaneagentserver. However, customers utilizing distributed profiling, will want to get their URL from their administrator.
   
 * token - The "Authentication Token" field contains the PaaSLane token associated with a specific user in a specific tenant. This token can be gotten by logging into PaaSLane, clicking the username dropdown and selecting to "Get Token". Once you have this option you should be presented with the time sensitive token.
   
