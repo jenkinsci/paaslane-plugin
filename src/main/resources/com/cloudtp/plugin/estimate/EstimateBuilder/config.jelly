@@ -39,7 +39,7 @@
   -->
 
   <f:entry title="PaaSLane URL" field="uri">
-    <f:textbox />
+    <f:textbox default="https://agent.paaslane.com/paaslaneagentserver"/>
   </f:entry>
   
   <f:entry title="Language" field="language">
