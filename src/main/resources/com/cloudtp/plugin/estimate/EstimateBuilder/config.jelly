@@ -12,44 +12,140 @@
     String name, String token, String archiveFilePath, String regWhichIncludedModules, String ruleSets, String uri
     
   -->
-  <f:entry title="Name" field="name">
+  <f:entry title="Application Name" field="name">
     <f:textbox />
   </f:entry>
   
-  <f:entry title="Authentication Token" field="token">
-    <f:textbox />
-  </f:entry>
-
-  <f:entry title="Path to Artifact" field="archiveFilePath">
-    <f:textbox />
-  </f:entry>
-
-  <f:entry title="Regular Expression for Selecting Modules" field="regWhichIncludedModules">
-    <f:textbox default="**/*.?ar"/>
-  </f:entry>
-
-  <f:entry title="Exclude Regular Expressions" field="regexExclude">
-    <f:textbox  default="(.*)WEB-INF(.*),(.*)/test-classes/(.*)"/>
-  </f:entry>
-
-  <!--
-  <f:entry title="List of Rule Sets to Estimate" field="ruleSets">
-    <f:textbox />
-  </f:entry>
-  -->
-
-  <f:entry title="PaaSLane URL" field="uri">
-    <f:textbox default="https://agent.paaslane.com/paaslaneagentserver"/>
-  </f:entry>
+  <f:section title="Server Configuration">
+	  <f:entry title="Authentication Token" field="token">
+	    <f:textbox />
+	  </f:entry>
+	
+	  <f:entry title="PaaSLane SaaS URL" field="saasuri">
+	    <f:textbox default="https://app.paaslane.com/paaslane"/>
+	  </f:entry>
+	  
+	  <f:entry title="PaaSLane Agent URL" field="uri">
+	    <f:textbox default="https://agent.paaslane.com/paaslaneagentserver"/>
+	  </f:entry>
+  </f:section>
   
-  <f:entry title="Language" field="language">
-    <select name="language" >
-    	<option value="java">Java</option>
-    	<option value=".net">.NET(C#)</option>
-    </select>
-  </f:entry>
+  <f:section title="Build Configuration">
+	  <f:entry title="Path to Artifact" field="archiveFilePath">
+	    <f:textbox />
+	  </f:entry>
+	
+	  <f:entry title="Regular Expression for Selecting Modules" field="regWhichIncludedModules">
+	    <f:textbox default="**/*.?ar"/>
+	  </f:entry>
+	
+	  <f:entry title="Exclude Regular Expressions" field="regexExclude">
+	    <f:textbox  default="(.*)WEB-INF(.*),(.*)/test-classes/(.*)"/>
+	  </f:entry>
+	
+	  <!--
+	  <f:entry title="List of Rule Sets to Estimate" field="ruleSets">
+	    <f:textbox />
+	  </f:entry>
+	  -->
+
+	 <f:entry  name="language" field="langauge" title="Language" >
+        <select name="language" >
+		<j:choose> 
+			<j:when test="${instance.language == 'java'}"> 
+				<option value="java" selected="selected" >Java</option>
+				<option value="csharp" >.NET(C#)</option>
+			</j:when> 
+			<j:otherwise> 
+				<option value="java" >Java</option>
+				<option value="csharp" selected="selected" >.NET(C#)</option>
+			</j:otherwise> 
+		</j:choose> 
+	    </select> 
+      </f:entry>
+	  
+	  <f:entry title="Test, but don't send files" field="testOnly">
+	    <f:checkbox />
+	  </f:entry>
+    </f:section>
+
+  <f:section title="Success Configuration">
+
+	 <f:block>
+	  <table>
+		<f:optionalBlock 
+		   name="failBlockTotalVio" title="Fail when Total Alert Count greater than..." 
+		   checked="${instance.failBlockTotalVio}" inline="true"
+		   help="/descriptor/com.cloudtp.plugin.estimate.EstimateBuilder/help/failBlockTotalVio">
+
+		  <f:entry field="maxNumberOfViolations">
+					<f:textbox />
+		  </f:entry>
+		  
+		</f:optionalBlock>
+	  </table>
+	</f:block>
+
+	 <f:block>
+	  <table>
+		<f:optionalBlock 
+		   name="failBlockBlockerVio" title="Fail when Blocker Alert Count greater than..." 
+		   checked="${instance.failBlockBlockerVio}" inline="true"
+		   help="/descriptor/com.cloudtp.plugin.estimate.EstimateBuilder/help/failBlockBlockerVio">
+
+		  <f:entry field="maxNumberOfBlockerViolations">
+					<f:textbox />
+		  </f:entry>
+		  
+		</f:optionalBlock>
+	  </table>
+	</f:block>
+
+	 <f:block>
+	  <table>
+		<f:optionalBlock 
+		   name="failBlockImportantVio" title="Fail when Important Alert Count greater than..." 
+		   checked="${instance.failBlockImportantVio}" inline="true"
+		   help="/descriptor/com.cloudtp.plugin.estimate.EstimateBuilder/help/failBlockImportantVio">
+
+		  <f:entry field="maxNumberOfImportantViolations">
+					<f:textbox />
+		  </f:entry>
+		  
+		</f:optionalBlock>
+	  </table>
+	</f:block>
+
+	 <f:block>
+	  <table>
+		<f:optionalBlock 
+		   name="failBlockWarningVio" title="Fail when Warning Alert Count greater than..." 
+		   checked="${instance.failBlockWarningVio}" inline="true"
+		   help="/descriptor/com.cloudtp.plugin.estimate.EstimateBuilder/help/failBlockWarningVio">
+
+		  <f:entry field="maxNumberOfWarningViolations">
+					<f:textbox />
+		  </f:entry>
+		  
+		</f:optionalBlock>
+	  </table>
+	</f:block>
+
+	 <f:block>
+	  <table>
+		<f:optionalBlock 
+		   name="failBlockOptimizationVio" title="Fail when Optimization Alert Count greater than..." 
+		   checked="${instance.failBlockOptimizationVio}" inline="true"
+		   help="/descriptor/com.cloudtp.plugin.estimate.EstimateBuilder/help/failBlockOptimizationVio">
+
+		  <f:entry field="maxNumberOfOptimizationViolations">
+					<f:textbox />
+		  </f:entry>
+		  
+		</f:optionalBlock>
+	  </table>
+	</f:block>
+
+  </f:section>
   
-  <f:entry title="Test, but don't send files" field="testOnly">
-    <f:checkbox />
-  </f:entry>
 </j:jelly>

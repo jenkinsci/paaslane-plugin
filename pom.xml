@@ -8,7 +8,7 @@
 
   <groupId>com.cloudtp.jenkins</groupId>
   <artifactId>paaslane</artifactId>
-  <version>1.0.1</version>
+  <version>1.0.2-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
   <name>Jenkins PaaSLane Estimate plugin</name>
@@ -83,5 +83,13 @@
       <artifactId>jersey-multipart</artifactId>
       <version>${jersey.client.version}</version>
     </dependency>
-  </dependencies>
+<!--     <dependency>
+	  <groupId>org.jenkins-ci.main</groupId>
+	  <artifactId>jenkins-war</artifactId>
+	  <type>war</type>
+	  <version>1.396replace this with the version you want</version>
+	  <scope>test</scope>
+	</dependency>
+ -->
+   </dependencies>
 </project>
