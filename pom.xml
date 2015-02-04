@@ -8,7 +8,7 @@
 
   <groupId>com.cloudtp.jenkins</groupId>
   <artifactId>paaslane-estimate</artifactId>
-  <version>1.0.3-SNAPSHOT</version>
+  <version>1.0.3</version>
   <packaging>hpi</packaging>
 
   <name>Jenkins PaaSLane Estimate plugin</name>
