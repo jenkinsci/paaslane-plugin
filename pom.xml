@@ -7,7 +7,7 @@
   </parent>
 
   <groupId>com.cloudtp.jenkins</groupId>
-  <artifactId>paaslane</artifactId>
+  <artifactId>paaslane-estimate</artifactId>
   <version>1.0.3-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
