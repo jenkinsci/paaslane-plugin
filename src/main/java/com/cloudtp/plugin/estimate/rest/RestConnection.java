@@ -2,6 +2,7 @@ package com.cloudtp.plugin.estimate.rest;
 
 import com.cloudtp.plugin.estimate.ApplicationStats;
 import com.cloudtp.plugin.estimate.ApplicationStatsResponse;
+import com.cloudtp.plugin.estimate.BooleanDto;
 import com.cloudtp.plugin.estimate.EstimateSummary;
 import com.cloudtp.plugin.estimate.EstimateSummaryResponse;
 import com.sun.jersey.api.client.Client;
@@ -16,10 +17,16 @@ import com.sun.jersey.multipart.file.FileDataBodyPart;
 
 import org.apache.commons.httpclient.HttpStatus;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.json.JSONException;
+import org.json.JSONObject;
 
+import javax.ws.rs.core.Cookie;
 import javax.ws.rs.core.MediaType;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -36,6 +43,7 @@ public class RestConnection {
 	private static final String REST_SEGMENT_ESTIMATE_REQUEST = "/restapi/estimate/estimateModule";
 	private static final String REST_SEGMENT_ESTIMATE_STATUS = "/restapi/application/name";
 	private static final String REST_SEGMENT_ESTIMATES_PER_APP = "/restapi/applicationeffortestimationstats/application/%d";
+	private static final String REST_SEGMENT_CREATE_REPORT = "/restapi/applicationeffortestimation/create";
 
 	private static final String PARAM_DEFAULT_ROLLUP = "false";
 	private static final String PARAM_DEFAULT_OUTPUT = "JSON";
@@ -64,7 +72,6 @@ public class RestConnection {
 
 		restResource = restClient.resource(parsedRestUri);
 		restResource.header(REST_AUTHORIZATION, token);
-
 	}
 
 	public int estimateApplication(final String name,
@@ -180,6 +187,7 @@ public class RestConnection {
 				if ((estSummaryResponse == null)
 						|| estSummaryResponse.getErrorFound()
 						|| (estSummaryResponse.getList().size() == 0)) {
+					LOG.log(Level.INFO, "Estimate Summary came back null, empty, or with an error");
 					result = null;
 				} else {
 					result = estSummaryResponse.getList().get(0);
@@ -197,6 +205,36 @@ public class RestConnection {
 							+ "see stack-trace for more information", e);
 			result = null;
 		}
+		return result;
+	}
+	
+	public boolean createReport(String applicationName, String reportConfigName, String reportName) {
+		boolean result = false;
+		
+		try {
+			ClientResponse response = restResource
+			.path(REST_SEGMENT_CREATE_REPORT)
+			.queryParam("applicationName", applicationName)
+			.queryParam("reportConfigName", reportConfigName)
+			.queryParam("reportName", reportName)
+			.header(REST_AUTHORIZATION, parsedToken)
+			.method("POST", ClientResponse.class);
+			
+			if (response.getStatus() == 200) {
+				BooleanDto responseDto = response.getEntity(new GenericType<BooleanDto>() {});
+				if (responseDto.getResult() && !responseDto.getErrorFound()) {
+					result = true;
+				} else {
+					LOG.log(Level.WARNING, "Failed to create a report");
+					for (String message : responseDto.getMessages()) {
+						LOG.log(Level.WARNING, message);
+					}
+				}
+			}
+		} catch (Exception e) {
+			LOG.log(Level.WARNING, "Error calling PaaSLane to create a report");
+		}
+		
 		return result;
 	}
 
@@ -221,8 +259,7 @@ public class RestConnection {
 	}
 
 	private String parseRestUri(final String restUri) {
-		StringBuilder parsedRestUri = new StringBuilder(
-				parseRestSegment(restUri));
+		StringBuilder parsedRestUri = new StringBuilder(parseRestSegment(restUri));
 
 		String[] uriOrderedSegments = { "paaslane" };
 		for (String segment : uriOrderedSegments) {
@@ -234,13 +271,8 @@ public class RestConnection {
 		return parsedRestUri.toString();
 	}
 
-	private String parseRestSegment(final String restSegment) {
-		String parsedSegment = restSegment;
-		if (!restSegment.endsWith("/")) {
-			parsedSegment += "/";
-		}
-
-		return parsedSegment;
+	private String parseRestSegment(String restSegment) {
+		return restSegment.endsWith("/")? restSegment : restSegment+"/";
 	}
 
 	private static boolean isFieldEmpty(final String field) {
@@ -252,8 +284,49 @@ public class RestConnection {
 		if (trimmedField.length() == 0) {
 			return true;
 		}
-
 		return false;
+	}
+	
+	/**
+	 * Reads the incoming bytes of an <code>InputStream</code>
+	 * and attempts to build a <code>JSONObject</code>.
+	 * @param inputStream The input stream to read the object from.
+	 * @return an instance of a <code>JSONObject</code>; or <code>null</code>.
+	 * @throws NullPointerException when the input is <code>null</code>.
+	 * @throws IOException when the input stream cannot be read.
+	 * @throws JSONException when the stream contents are malformed.
+	 */
+	public JSONObject fromInputStream(InputStream inputStream) throws IOException, JSONException {
+		StringBuilder stringBuilder;
+		int chr;
+		
+		stringBuilder = new StringBuilder();
+		while((chr=inputStream.read()) != -1)
+			stringBuilder.append((char)chr);
+		return new JSONObject(stringBuilder.toString());
+	}
+	
+	/**
+	 * Gets a list of report configuration names from a REST end point.
+	 * It requests a JSON resource at <code>GET /restapi/reportconfig/</code>.
+	 * @return a <code>JSONObject</code>; or <code>null</code>.
+	 * @throws IOException when the entity input stream cannot be read.
+	 * @throws JSONException when the entity input stream contents are malformed.
+	 */
+	public JSONObject getReportConfigs() throws IOException, JSONException {
+		ClientResponse response;
+		
+		response = restResource
+				.path("/restapi/reportconfig/")
+				.header(REST_AUTHORIZATION, parsedToken)
+				.accept("application/json")
+				.get(ClientResponse.class);
+		
+		if(response.getStatus() == HttpStatus.SC_OK) {
+			return fromInputStream(response.getEntityInputStream());
+		}
+		
+		return null;
 	}
 
 }

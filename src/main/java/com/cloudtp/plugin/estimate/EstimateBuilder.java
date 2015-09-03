@@ -21,6 +21,8 @@ import net.sf.json.JSONObject;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.tools.ant.DirectoryScanner;
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.QueryParameter;
@@ -35,8 +37,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -63,8 +69,10 @@ public class EstimateBuilder extends Builder implements Serializable{
 
     private static final String FAIL_REASON_NEVER = "never";
     private static final String FAIL_REASON_ALERT_COUNT_GREATER = "alertCountGreater";
+    private static final int GENERATE_REPORT_MAX_RETRIES = 5;
     
     private boolean uploadSucceeded = true;
+    private boolean autoEstimate;
     
     private final String name;
     private final String uri;
@@ -72,7 +80,7 @@ public class EstimateBuilder extends Builder implements Serializable{
     private final String token;
     private final String archiveFilePath;
     private final String regWhichIncludedModules;
-    private final String ruleSets;
+    private final String reportConfigName;
     private final String language;
     private final String regexExclude;
     private final Boolean testOnly;
@@ -90,7 +98,7 @@ public class EstimateBuilder extends Builder implements Serializable{
 
     // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     @DataBoundConstructor
-    public EstimateBuilder(String name, String token, String archiveFilePath, String regWhichIncludedModules, String ruleSets, String uri, String saasuri, String language, String regexExclude, Boolean testOnly, 
+    public EstimateBuilder(String name, String token, String archiveFilePath, String regWhichIncludedModules, String reportConfigName, String uri, String saasuri, String language, String regexExclude, Boolean testOnly, 
     						Long maxNumberOfViolations, Boolean failBlockTotalVio, 
     						Long maxNumberOfBlockerViolations, Boolean failBlockBlockerVio, 
     						Long maxNumberOfImportantViolations, Boolean failBlockImportantVio, 
@@ -100,7 +108,7 @@ public class EstimateBuilder extends Builder implements Serializable{
         this.token = token;
         this.archiveFilePath = archiveFilePath;
         this.regWhichIncludedModules = regWhichIncludedModules;
-        this.ruleSets = ruleSets;
+        this.reportConfigName = reportConfigName;
         this.uri = uri;
         this.saasuri = saasuri;
         this.language = language;
@@ -138,8 +146,8 @@ public class EstimateBuilder extends Builder implements Serializable{
 		return regWhichIncludedModules;
 	}
 
-	public String getRuleSets() {
-		return ruleSets;
+	public String getReportConfigName() {
+		return reportConfigName;
 	}
 
 	public String getUri() {
@@ -217,6 +225,13 @@ public class EstimateBuilder extends Builder implements Serializable{
 		boolean result = true;
 		
 		AbstractProject project = build.getProject();
+		
+		// This is a solution for dropping the new plugin version on an existing workspace
+		// Putting this code in the constructor was causing issues
+		this.autoEstimate = true;
+		if (this.reportConfigName != null && !this.reportConfigName.equals("") && !this.reportConfigName.equals("null")) {
+			this.autoEstimate = false;
+		}
 		
 		listener.getLogger().println("Project: " + project.getBuildDir().getAbsolutePath());
 				
@@ -303,7 +318,7 @@ public class EstimateBuilder extends Builder implements Serializable{
 		listener.getLogger().println("File Path: " + archiveFilePath);
 		listener.getLogger().println("Regular Expression for included modules: " + regWhichIncludedModules);
 		listener.getLogger().println("Exclude Regular Expressions for included modules: " + regexExclude);
-		listener.getLogger().println("List of Rule Sets: " + ruleSets);
+		listener.getLogger().println("Report Config: " + reportConfigName);
 		listener.getLogger().println("Language: " + language);
 		listener.getLogger().println("TestOnly: " + testOnly);
 		if(failBlockTotalVio != null && failBlockTotalVio )
@@ -451,6 +466,7 @@ public class EstimateBuilder extends Builder implements Serializable{
 	private Long waitForResults(BuildListener listener) {
 		ApplicationStats stats = null;
 		boolean done = false;
+		int retryCount = 0;
 		Long applicationId = null;
 		Long lastCount = Long.MAX_VALUE, count;
 		
@@ -474,7 +490,19 @@ public class EstimateBuilder extends Builder implements Serializable{
 					} else if (stats.getLastProfileDate() == null 
 								|| stats.getLastEstimateDate() == null
 								|| !stats.getLastProfileDate().before(stats.getLastEstimateDate())){
-						if(listener != null) listener.getLogger().println("Waiting for estimate report to be generated: ");
+						if (autoEstimate) {
+							if(listener != null) listener.getLogger().println("Waiting for estimate report to be generated: ");
+						} else {
+							if (retryCount < GENERATE_REPORT_MAX_RETRIES) {
+								if(listener != null) listener.getLogger().println("Generating estimate report... ");
+								connection.createReport(getName(), getReportConfigName(), getName() + new SimpleDateFormat("yyyy-MM-dd'T'HH:mm").format(new Date()));
+								retryCount++;
+							} else {
+								if(listener != null) listener.getLogger().println("Failed to generate report. Check report config name");
+								done = true;
+								applicationId = null;
+							}
+						}
 					}
 					Thread.sleep(30 * 1000);
 				} else {
@@ -551,7 +579,7 @@ public class EstimateBuilder extends Builder implements Serializable{
 	    }
 	    
 	    if(currentTask != null){
-	    	currentTask.setEstimate(true);
+	    	currentTask.setEstimate(autoEstimate);
 	    	taskExecutor.execute(currentTask);
 	    }
 	    if(listener != null) listener.getLogger().println("Queued up " + numFiles  + " items"  );
@@ -744,7 +772,17 @@ public class EstimateBuilder extends Builder implements Serializable{
      */
     @Extension // This indicates to Jenkins that this is an implementation of an extension point.
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
-
+    	
+    	/**
+    	 * Whether the token is authorized.
+    	 */
+    	private boolean isAuthorized;
+    	
+    	/**
+    	 * The a list of report configuration names.
+    	 */
+    	private org.json.JSONObject reportConfigsDto;
+    	
         /**
          * In order to load the persisted global configuration, you have to 
          * call load() in the constructor.
@@ -801,18 +839,118 @@ public class EstimateBuilder extends Builder implements Serializable{
         }
         
         /**
+         * Fills in report configuration items.
+         * @return a `ListBoxModel` to populate report configurations.
+         */
+        public ListBoxModel doFillReportConfigNameItems(
+        		@QueryParameter("token") String token,
+        		@QueryParameter("saasuri") String saasURI,
+        		@QueryParameter("language") String language)
+        	throws JSONException
+        {
+        	ListBoxModel items;
+        	org.json.JSONArray configsListDto;
+        	org.json.JSONObject configDto;
+        	
+        	if(!isAuthorized || reportConfigsDto == null) {
+        		return new ListBoxModel();
+        	}
+        	
+        	items = new ListBoxModel();
+        	configsListDto = reportConfigsDto.getJSONArray("list");
+    
+        	// Jenkins represents language as 'java' or 'csharp'
+        	// The DTO will represent language as 'Java' or 'C#" or 'Python'
+        	String translatedLanguage = language.equals("java") ? "Java" : "C#";
+        	
+        	for(int i=0; i < configsListDto.length(); i++) {
+        		configDto = configsListDto.getJSONObject(i);
+        		JSONArray rulesetTemplateRankings = configDto.getJSONObject("rulesetTemplateDto").getJSONArray("ruleSetTemplateRankings");
+        		for (int j = 0; j < rulesetTemplateRankings.length(); j++) {
+        			if (rulesetTemplateRankings.getJSONObject(j).getString("language").equals(translatedLanguage)) {
+        				items.add(configDto.getString("name"));
+        				break;
+        			}
+        		}
+        	}
+        	return items;
+        }
+        
+        /**
+         * Validates the report configuration drop-down menu
+         * by checking if an authorized token is being used.
+         * @return
+         */
+        public FormValidation doCheckReportConfigName(
+        		@QueryParameter("token") String token,
+        		@QueryParameter("saasuri") String saasURI)
+        	throws IOException, JSONException
+        {
+        	RestConnection conn;
+        	     	
+        	if(isAuthorized) {
+        		return FormValidation.ok();
+            }
+        	
+        	conn = new RestConnection(saasURI, token);
+        	reportConfigsDto = conn.getReportConfigs();
+
+        	if(reportConfigsDto != null) {
+        		setAuthorized(true);
+        		return FormValidation.ok();
+            }
+        	
+    		return FormValidation.warning("Enter an authorized token to run automatic reporting. Then refresh this page.");
+        }
+        
+        /**
          * Performs on-the-fly validation of the form field 'token'.
-         *
-         * @param value
-         *      This parameter receives the value that the user has typed.
+         * It establishes a REST connection and queries the status
+         * To assert the given token is valid.
+         * 
+         * @param token
+         *      This parameter receives the value that the user has typed in the token field.
+         * @param saasURI
+         * 		This parameter receives the value that the user has typed in the 'saasuri' field.
          * @return
          *      Indicates the outcome of the validation. This is sent to the browser.
+         * 		
+         * 
+         * @see doCheckTokenEmpty for form validation (check for required field).
          */
-        public FormValidation doCheckToken(@QueryParameter String value)
-                throws IOException, ServletException {
-            if (!RestConnection.validateToken(value))
-                return FormValidation.error("The token must be provided");
-            return FormValidation.ok();
+        public FormValidation doCheckToken(
+        		@QueryParameter("token") String token,
+        		@QueryParameter("saasuri") String saasURI)
+        	throws IOException, ServletException, JSONException
+        {
+        	RestConnection conn;
+        	
+        	if (!RestConnection.validateToken(token)) {
+        		setAuthorized(false);
+                return FormValidation.error("The token must be provided.");
+        	}
+        	
+        	conn = new RestConnection(saasURI, token);
+        	reportConfigsDto = conn.getReportConfigs();
+        	
+        	if(reportConfigsDto == null) {
+        		setAuthorized(false);
+        		return FormValidation.error("The token is not authorized.");
+        	}
+        	
+        	setAuthorized(true);
+    		return FormValidation.ok();
+        }
+        
+        /**
+         * Sets the authorized state.
+         * @param isAuthorized whether the token is authorized. 
+         */
+        public void setAuthorized(boolean isAuthorized) {
+        	if(!isAuthorized) {
+        		reportConfigsDto = null;
+        	}
+        	this.isAuthorized = isAuthorized;
         }
          
         /**

@@ -12,15 +12,17 @@
     String name, String token, String archiveFilePath, String regWhichIncludedModules, String ruleSets, String uri
     
   -->
+
   <f:entry title="Application Name" field="name">
     <f:textbox />
   </f:entry>
   
   <f:section title="Server Configuration">
+	  
 	  <f:entry title="Authentication Token" field="token">
-	    <f:textbox />
-	  </f:entry>
-	
+            <f:textbox />
+          </f:entry>
+
 	  <f:entry title="PaaSLane SaaS URL" field="saasuri">
 	    <f:textbox default="https://app.paaslane.com/paaslane"/>
 	  </f:entry>
@@ -28,6 +30,7 @@
 	  <f:entry title="PaaSLane Agent URL" field="uri">
 	    <f:textbox default="https://agent.paaslane.com/paaslaneagentserver"/>
 	  </f:entry>
+
   </f:section>
   
   <f:section title="Build Configuration">
@@ -44,10 +47,14 @@
 	  </f:entry>
 	
 	  <!--
-	  <f:entry title="List of Rule Sets to Estimate" field="ruleSets">
+	  <f:entry title="Report Config" field="reportConfigName">
 	    <f:textbox />
 	  </f:entry>
 	  -->
+
+	<f:entry title="Report Config" field="reportConfigName">
+		<f:select id="reportConfigNameSelect" />	
+	</f:entry>
 
 	 <f:entry  name="language" field="langauge" title="Language" >
         <select name="language" >
